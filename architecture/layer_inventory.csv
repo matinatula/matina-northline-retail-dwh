@@ -1,0 +1,46 @@
+object,layer,schema,former_2_1_name,format,partitioning,load_pattern,source_or_built_from,notes
+STG_XSTORE_SALES,Bronze,bronze,,PSV file + Parquet copy (all text),INGEST_DT,delta,pos_xstore/SA_TRAN_ITEM_*.psv,Header/trailer lines kept; trailer count checked at gate 1
+STG_NCR_SALES,Bronze,bronze,,CSV file + Parquet copy (all text),INGEST_DT,delta,pos_ncr/NCR_SALES_JOURNAL_*.csv (2 files),Repeated mid-file header in 2025 file is landed as-is
+STG_OMS_ORDER_LINES,Bronze,bronze,,CSV file + Parquet copy (all text),INGEST_DT,delta,oms/WEB_ORDER_LINES_*.csv,Cents and UTC timestamps landed untouched
+STG_ITEM_MASTER,Bronze,bronze,,CSV file + Parquet copy (all text),INGEST_DT,full,rms/ITEM_MASTER.csv,Also the source of DIM_BRAND
+STG_ITEM_MASTER_HIST,Bronze,bronze,,CSV file + Parquet copy (all text),INGEST_DT,full,rms/ITEM_MASTER_HIST.csv,History for DIM_ITEM SCD2
+STG_ITEM_UPC,Bronze,bronze,,CSV file + Parquet copy (all text),INGEST_DT,full,rms/ITEM_UPC.csv,UPC to item key lookup
+STG_DEPS,Bronze,bronze,,CSV file + Parquet copy (all text),INGEST_DT,full,rms/DEPS.csv,
+STG_SUBCLASS,Bronze,bronze,,CSV file + Parquet copy (all text),INGEST_DT,full,rms/SUBCLASS.csv,
+STG_REGION,Bronze,bronze,,CSV file + Parquet copy (all text),INGEST_DT,full,rms/REGION.csv,
+STG_DISTRICT,Bronze,bronze,,CSV file + Parquet copy (all text),INGEST_DT,full,rms/DISTRICT.csv,
+STG_STORE,Bronze,bronze,,CSV file + Parquet copy (all text),INGEST_DT,full,rms/STORE.csv,
+STG_STORE_DISTRICT_MOVE,Bronze,bronze,,CSV file + Parquet copy (all text),INGEST_DT,full,rms/STORE_DISTRICT_MOVE.csv,Drives the DIM_LOCN SCD2 event (store 1112)
+STG_SOH_FULL,Bronze,bronze,,CSV file + Parquet copy (all text),INGEST_DT,delta,rms/soh_full/ITEM_LOC_SOH_FULL_*.csv (30 files),One full position per snapshot date
+STG_PRICE_EVENTS,Bronze,bronze,,CSV file + Parquet copy (all text),INGEST_DT,full,rpm/PRICE_EVENTS.csv,
+STG_PRICE_ZONE_LOC,Bronze,bronze,,CSV file + Parquet copy (all text),INGEST_DT,full,rpm/PRICE_ZONE_LOC.csv,
+STG_FISCAL_CALENDAR,Bronze,bronze,,CSV file + Parquet copy (all text),INGEST_DT,seed,finance/FISCAL_CALENDAR_SEED.csv,"Seed has a missing day, a repeated day, bad ISO weeks"
+STG_EXTRACT_MANIFEST,Bronze,bronze,,CSV file + Parquet copy (all text),INGEST_DT,full,EXTRACT_MANIFEST.csv,Expected file list and row counts for the arrival gate
+TMP_DEPT,Silver,silver,,Parquet,none,full,STG_DEPS,
+TMP_SUBCLASS,Silver,silver,,Parquet,none,full,STG_SUBCLASS,
+TMP_BRAND,Silver,silver,,Parquet,none,full,STG_ITEM_MASTER,Distinct trimmed brand names
+TMP_ITEM,Silver,silver,,Parquet,none,delta,STG_ITEM_MASTER + STG_ITEM_MASTER_HIST,Compared with DIM_ITEM: new / update / reclass / close
+TMP_ITEM_UPC,Silver,silver,,Parquet,none,full,STG_ITEM_UPC,Conformed lookup used to resolve sales item keys
+TMP_REGION,Silver,silver,,Parquet,none,full,STG_REGION,
+TMP_DISTRICT,Silver,silver,,Parquet,none,full,STG_DISTRICT,Parent region checked here
+TMP_LOCN,Silver,silver,,Parquet,none,delta,STG_STORE + STG_STORE_DISTRICT_MOVE,Location keys normalised to one form
+TMP_CALENDAR,Silver,silver,,Parquet,none,seed,STG_FISCAL_CALENDAR,Validated and de-duplicated; feeds DIM_DAY/MONTH/YEAR
+TMP_SALES,Silver,silver,,Parquet,BUSINESS_DT,delta,STG_XSTORE_SALES + STG_NCR_SALES + STG_OMS_ORDER_LINES,"Conformed across all 3 feeds (the architecture departure); composite sales key, signs and currency normalised"
+TMP_PRICE,Silver,silver,,Parquet,BUSINESS_DT,delta,STG_PRICE_EVENTS + STG_PRICE_ZONE_LOC,Zone events expanded to location; overlaps resolved
+TMP_INVENTORY,Silver,silver,,Parquet,SNAPSHOT_DT,delta,STG_SOH_FULL,
+C_REJ_TABLE,Silver,silver,,DuckDB table,BATCH_DT,delta,All gates that quarantine,Quarantined rows plus the rule and reason code
+DIM_DEPT,Gold,gold,DIM_CATEGORY,DuckDB table,none,full,TMP_DEPT,SCD1
+DIM_SUBCLASS,Gold,gold,DIM_SUBCATEGORY,DuckDB table,none,full,TMP_SUBCLASS,SCD1
+DIM_BRAND,Gold,gold,DIM_BRAND,DuckDB table,none,full,TMP_BRAND,SCD1
+DIM_ITEM,Gold,gold,DIM_ITEM,DuckDB table,none,delta,TMP_ITEM,"SCD2 on name, subclass, brand"
+DIM_REGION,Gold,gold,DIM_REGION,DuckDB table,none,full,TMP_REGION,SCD1
+DIM_DISTRICT,Gold,gold,DIM_CITY,DuckDB table,none,full,TMP_DISTRICT,SCD1; holds RMS districts
+DIM_LOCN,Gold,gold,DIM_LOCN,DuckDB table,none,delta,TMP_LOCN,SCD2 on name and district
+DIM_CUSTOMER,Gold,gold,DIM_CUSTOMER,DuckDB table,none,seed,none (no customer source file),Single Unknown row; SCD1
+DIM_YEAR,Gold,gold,DIM_YEAR,DuckDB table,none,seed,TMP_CALENDAR,
+DIM_MONTH,Gold,gold,DIM_MONTH,DuckDB table,none,seed,TMP_CALENDAR,
+DIM_DAY,Gold,gold,DIM_DAY,DuckDB table,none,seed,TMP_CALENDAR,
+FCT_SALES,Gold,gold,FCT_SALES,DuckDB table,DAY_KY,delta,TMP_SALES,Transaction fact; delete-partition-then-insert
+FCT_PRICE,Gold,gold,FCT_PRICE,DuckDB table,DAY_KY,delta,TMP_PRICE,Positional fact; close then open
+FCT_INVENTORY,Gold,gold,FCT_INVENTORY,DuckDB table,DAY_KY,delta,TMP_INVENTORY,Positional fact; close then open
+AGG_SLS_DEPT_DISTRICT_MONTH,Gold,gold,AGG_SLS_CATEGORY_CITY_MONTH,DuckDB table,MONTH_KY,delta,FCT_SALES,"Rebuilt for affected months, never incremented"

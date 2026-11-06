@@ -1,0 +1,333 @@
+Table DIM_BRAND [headercolor: #326F9C] {
+  BRAND_KY int [pk, increment]
+  BRAND_ID varchar [not null, unique]
+  BRAND_NAME varchar
+  CURR_FLG boolean [not null, default: true]
+  EFF_FROM_DT date [not null]
+  EFF_TO_DT date [not null, default: '9999-12-31']
+  REC_INS_TS timestamp [not null]
+  REC_UPDT_TS timestamp [not null]
+  SRC_SYS_CD varchar [not null]
+  BATCH_ID varchar [not null]
+
+}
+
+Table DIM_CATEGORY [headercolor: #326F9C] {
+  CATEGORY_KY int [pk, increment]
+  CATEGORY_ID varchar [not null, unique]
+  CATEGORY_NAME varchar
+  CURR_FLG boolean [not null, default: true]
+  EFF_FROM_DT date [not null]
+  EFF_TO_DT date [not null, default: '9999-12-31']
+  REC_INS_TS timestamp [not null]
+  REC_UPDT_TS timestamp [not null]
+  SRC_SYS_CD varchar [not null]
+  BATCH_ID varchar [not null]
+
+}
+
+Table DIM_SUBCATEGORY [headercolor: #326F9C] {
+  SUBCATEGORY_KY int [pk, increment]
+  SUBCATEGORY_ID varchar [not null, unique]
+  SUBCATEGORY_NAME varchar
+  CATEGORY_KY int [not null]
+  CURR_FLG boolean [not null, default: true]
+  EFF_FROM_DT date [not null]
+  EFF_TO_DT date [not null, default: '9999-12-31']
+  REC_INS_TS timestamp [not null]
+  REC_UPDT_TS timestamp [not null]
+  SRC_SYS_CD varchar [not null]
+  BATCH_ID varchar [not null]
+
+}
+
+Table DIM_ITEM [headercolor: #326F9C] {
+  ITEM_KY int [pk, increment]
+  ITEM_ID varchar [not null]
+  ITEM_NAME varchar
+  SUBCATEGORY_KY int [not null]
+  BRAND_KY int
+  CURR_FLG boolean [not null]
+  EFF_FROM_DT date [not null]
+  EFF_TO_DT date [not null, default: '9999-12-31']
+  REC_INS_TS timestamp [not null]
+  REC_UPDT_TS timestamp [not null]
+  SRC_SYS_CD varchar [not null]
+  BATCH_ID varchar [not null]
+
+  indexes {
+    (ITEM_ID, EFF_FROM_DT) [unique]
+    (ITEM_ID)
+  }
+
+}
+
+Table DIM_CUSTOMER [headercolor: #326F9C] {
+  CUSTOMER_KY int [pk, increment]
+  CUSTOMER_ID varchar [not null, unique]
+  CUSTOMER_NAME varchar
+  EMAIL varchar
+  PHONE varchar
+  CURR_FLG boolean [not null, default: true]
+  EFF_FROM_DT date [not null]
+  EFF_TO_DT date [not null, default: '9999-12-31']
+  REC_INS_TS timestamp [not null]
+  REC_UPDT_TS timestamp [not null]
+  SRC_SYS_CD varchar [not null]
+  BATCH_ID varchar [not null]
+
+}
+
+Table DIM_YEAR [headercolor: #326F9C] {
+  YEAR_KY int [pk, increment]
+  YEAR_NUMBER int [not null, unique]
+  CURR_FLG boolean [not null, default: true]
+  EFF_FROM_DT date [not null]
+  EFF_TO_DT date [not null, default: '9999-12-31']
+  REC_INS_TS timestamp [not null]
+  REC_UPDT_TS timestamp [not null]
+  SRC_SYS_CD varchar [not null]
+  BATCH_ID varchar [not null]
+
+}
+
+Table DIM_MONTH [headercolor: #326F9C] {
+  MONTH_KY int [pk, increment]
+  MONTH_ID int [not null, unique]
+  MONTH_NUMBER int [not null]
+  MONTH_NAME varchar
+  YEAR_KY int [not null]
+  CURR_FLG boolean [not null, default: true]
+  EFF_FROM_DT date [not null]
+  EFF_TO_DT date [not null, default: '9999-12-31']
+  REC_INS_TS timestamp [not null]
+  REC_UPDT_TS timestamp [not null]
+  SRC_SYS_CD varchar [not null]
+  BATCH_ID varchar [not null]
+
+  indexes {
+    (YEAR_KY, MONTH_NUMBER) [unique]
+  }
+
+}
+
+Table DIM_DAY [headercolor: #326F9C] {
+  DAY_KY int [pk, increment]
+  FULL_DT date [not null, unique]
+  DAY_NUMBER int [not null]
+  MONTH_KY int [not null]
+  CURR_FLG boolean [not null, default: true]
+  EFF_FROM_DT date [not null]
+  EFF_TO_DT date [not null, default: '9999-12-31']
+  REC_INS_TS timestamp [not null]
+  REC_UPDT_TS timestamp [not null]
+  SRC_SYS_CD varchar [not null]
+  BATCH_ID varchar [not null]
+
+}
+
+Table DIM_REGION [headercolor: #326F9C] {
+  REGION_KY int [pk, increment]
+  REGION_ID varchar [not null, unique]
+  REGION_NAME varchar
+  CURR_FLG boolean [not null, default: true]
+  EFF_FROM_DT date [not null]
+  EFF_TO_DT date [not null, default: '9999-12-31']
+  REC_INS_TS timestamp [not null]
+  REC_UPDT_TS timestamp [not null]
+  SRC_SYS_CD varchar [not null]
+  BATCH_ID varchar [not null]
+
+}
+
+Table DIM_CITY [headercolor: #326F9C] {
+  CITY_KY int [pk, increment]
+  CITY_ID varchar [not null, unique]
+  CITY_NAME varchar
+  REGION_KY int [not null]
+  CURR_FLG boolean [not null, default: true]
+  EFF_FROM_DT date [not null]
+  EFF_TO_DT date [not null, default: '9999-12-31']
+  REC_INS_TS timestamp [not null]
+  REC_UPDT_TS timestamp [not null]
+  SRC_SYS_CD varchar [not null]
+  BATCH_ID varchar [not null]
+
+}
+
+Table DIM_LOCN [headercolor: #326F9C] {
+  LOCN_KY int [pk, increment]
+  LOCN_ID varchar [not null]
+  LOCN_NAME varchar
+  CITY_KY int [not null]
+  CURR_FLG boolean [not null]
+  EFF_FROM_DT date [not null]
+  EFF_TO_DT date [not null, default: '9999-12-31']
+  REC_INS_TS timestamp [not null]
+  REC_UPDT_TS timestamp [not null]
+  SRC_SYS_CD varchar [not null]
+  BATCH_ID varchar [not null]
+
+  indexes {
+    (LOCN_ID, EFF_FROM_DT) [unique]
+    (LOCN_ID)
+  }
+
+}
+
+Table FCT_SALES [headercolor: #C43D32] {
+  SALES_KY int [pk, increment]
+  TRANSACTION_ID varchar [not null]
+  LINE_NUMBER int [not null]
+  ITEM_KY int [not null]
+  LOCN_KY int [not null]
+  DAY_KY int [not null]
+  CUSTOMER_KY int
+  SLS_QTY decimal [not null]
+  SLS_AMT decimal [not null]
+  DSC_AMT decimal
+  REC_INS_TS timestamp [not null]
+  REC_UPDT_TS timestamp [not null]
+  SRC_SYS_CD varchar [not null]
+  BATCH_ID varchar [not null]
+
+  indexes {
+    (TRANSACTION_ID, LINE_NUMBER, ITEM_KY, LOCN_KY, DAY_KY) [unique]
+    (ITEM_KY)
+    (LOCN_KY)
+    (DAY_KY)
+    (CUSTOMER_KY)
+  }
+
+}
+
+Table FCT_PRICE [headercolor: #C43D32] {
+  PRICE_KY int [pk, increment]
+  ITEM_KY int [not null]
+  LOCN_KY int [not null]
+  DAY_KY int [not null]
+  PRICE_AMT decimal [not null]
+  EFF_FROM_DT date [not null]
+  EFF_TO_DT date [not null, default: '9999-12-31']
+  REC_INS_TS timestamp [not null]
+  REC_UPDT_TS timestamp [not null]
+  SRC_SYS_CD varchar [not null]
+  BATCH_ID varchar [not null]
+
+  indexes {
+    (ITEM_KY, LOCN_KY, DAY_KY) [unique]
+  }
+}
+
+Table FCT_INVENTORY [headercolor: #C43D32] {
+  INVENTORY_KY int [pk, increment]
+  ITEM_KY int [not null]
+  LOCN_KY int [not null]
+  DAY_KY int [not null]
+  STK_QTY decimal [not null]
+  STK_VAL decimal [not null]
+  EFF_FROM_DT date [not null]
+  EFF_TO_DT date [not null, default: '9999-12-31']
+  REC_INS_TS timestamp [not null]
+  REC_UPDT_TS timestamp [not null]
+  SRC_SYS_CD varchar [not null]
+  BATCH_ID varchar [not null]
+
+  indexes {
+    (ITEM_KY, LOCN_KY, DAY_KY) [unique]
+  }
+}
+
+Table AGG_SLS_CATEGORY_CITY_MONTH [headercolor: #C43D32] {
+  AGG_SLS_KY int [pk, increment]
+  CATEGORY_KY int [not null]
+  CITY_KY int [not null]
+  MONTH_KY int [not null]
+  SLS_QTY decimal [not null]
+  SLS_AMT decimal [not null]
+  DSC_AMT decimal
+  REC_INS_TS timestamp [not null]
+  REC_UPDT_TS timestamp [not null]
+  SRC_SYS_CD varchar [not null]
+  BATCH_ID varchar [not null]
+
+  indexes {
+    (CATEGORY_KY, CITY_KY, MONTH_KY) [unique]
+  }
+
+}
+
+Ref: DIM_CATEGORY.CATEGORY_KY < DIM_SUBCATEGORY.CATEGORY_KY
+Ref: DIM_SUBCATEGORY.SUBCATEGORY_KY < DIM_ITEM.SUBCATEGORY_KY
+Ref: DIM_BRAND.BRAND_KY < DIM_ITEM.BRAND_KY
+
+Ref: DIM_CUSTOMER.CUSTOMER_KY < FCT_SALES.CUSTOMER_KY
+Ref: DIM_ITEM.ITEM_KY < FCT_SALES.ITEM_KY
+Ref: DIM_LOCN.LOCN_KY < FCT_SALES.LOCN_KY
+Ref: DIM_DAY.DAY_KY < FCT_SALES.DAY_KY
+
+Ref: DIM_ITEM.ITEM_KY < FCT_PRICE.ITEM_KY
+Ref: DIM_LOCN.LOCN_KY < FCT_PRICE.LOCN_KY
+Ref: DIM_DAY.DAY_KY < FCT_PRICE.DAY_KY
+
+Ref: DIM_ITEM.ITEM_KY < FCT_INVENTORY.ITEM_KY
+Ref: DIM_LOCN.LOCN_KY < FCT_INVENTORY.LOCN_KY
+Ref: DIM_DAY.DAY_KY < FCT_INVENTORY.DAY_KY
+
+Ref: DIM_REGION.REGION_KY < DIM_CITY.REGION_KY
+Ref: DIM_CITY.CITY_KY < DIM_LOCN.CITY_KY
+
+Ref: DIM_YEAR.YEAR_KY < DIM_MONTH.YEAR_KY
+Ref: DIM_MONTH.MONTH_KY < DIM_DAY.MONTH_KY
+
+Ref: DIM_CATEGORY.CATEGORY_KY < AGG_SLS_CATEGORY_CITY_MONTH.CATEGORY_KY
+Ref: DIM_CITY.CITY_KY < AGG_SLS_CATEGORY_CITY_MONTH.CITY_KY
+Ref: DIM_MONTH.MONTH_KY < AGG_SLS_CATEGORY_CITY_MONTH.MONTH_KY
+
+TableGroup Facts [color: #C43D32] {
+  FCT_SALES
+  FCT_PRICE
+  FCT_INVENTORY
+  AGG_SLS_CATEGORY_CITY_MONTH
+}
+
+Table SCD_LEGEND [headercolor: #f1c40f] {
+  "DIM_BRAND.BRAND_ID" NA
+  "DIM_BRAND.BRAND_NAME" SCD1
+  "DIM_CATEGORY.CATEGORY_ID" NA
+  "DIM_CATEGORY.CATEGORY_NAME" SCD1
+  "DIM_SUBCATEGORY.SUBCATEGORY_ID" NA
+  "DIM_SUBCATEGORY.SUBCATEGORY_NAME" SCD1
+  "DIM_SUBCATEGORY.CATEGORY_KY" SCD1
+  "DIM_ITEM.ITEM_ID" NA
+  "DIM_ITEM.ITEM_NAME" SCD2
+  "DIM_ITEM.SUBCATEGORY_KY" SCD2
+  "DIM_ITEM.BRAND_KY" SCD2
+  "DIM_CUSTOMER.CUSTOMER_ID" NA
+  "DIM_CUSTOMER.CUSTOMER_NAME" SCD1
+  "DIM_CUSTOMER.EMAIL" SCD1
+  "DIM_CUSTOMER.PHONE" SCD1
+  "DIM_YEAR.YEAR_NUMBER" NA
+  "DIM_MONTH.MONTH_ID" NA
+  "DIM_MONTH.MONTH_NUMBER" SCD1
+  "DIM_MONTH.MONTH_NAME" SCD1
+  "DIM_MONTH.YEAR_KY" SCD1
+  "DIM_DAY.FULL_DT" NA
+  "DIM_DAY.DAY_NUMBER" SCD1
+  "DIM_DAY.MONTH_KY" SCD1
+  "DIM_REGION.REGION_ID" NA
+  "DIM_REGION.REGION_NAME" SCD1
+  "DIM_CITY.CITY_ID" NA
+  "DIM_CITY.CITY_NAME" SCD1
+  "DIM_CITY.REGION_KY" SCD1
+  "DIM_LOCN.LOCN_ID" NA
+  "DIM_LOCN.LOCN_NAME" SCD2
+  "DIM_LOCN.CITY_KY" SCD2
+  "ALL_DIMS.keys_flags_dates_timestamps" NA
+  "ALL_DIMS.src_sys_cd_batch_id" NA
+}
+
+Table COLOR_KEY [headercolor: #f1c40f] {
+  Red fact_table
+  Blue dimension_table
+}
