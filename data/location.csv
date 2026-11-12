@@ -1,0 +1,41 @@
+STORE,STORE_NAME,STORE_NAME10,STORE_TYPE,DISTRICT,CHANNEL_ID,CURRENCY_CODE,STORE_OPEN_DATE,STORE_CLOSE_DATE,COUNTRY,STATE,CITY,POSTAL_CODE,TOTAL_SQUARE_FT,COMP_FLAG
+1101,Northline Hartford #1101,Northline ,C,101,STORE,USD,20191022,,US,CT,Hartford,11101,24000,Y
+1102,Northline Albany #1102,Northline ,C,101,STORE,US$,20201123,,US,NY,Albany,11102,24000,N
+1103,Northline Hartford #1103,Northline ,C,101,STORE,US$,20211224,,US,CT,Hartford,11103,32000,N
+1104,Northline Boston #1104,Northline ,C,102,STORE,USD,20140125,,US,MA,Boston,11104,41000,N
+1105,Northline Providence #1105,Northline ,C,102,STORE,USD,20150226,,US,RI,Providence,11105,52000,Y
+1106,Northline Boston #1106,Northline ,C,102,STORE,USD,20160327,,US,MA,Boston,11106,18000,Y
+1107,Northline Savannah #1107,Northline ,C,103,STORE,USD,20170401,,US,GA,Savannah,11107,32000,N
+1108,Northline Charlotte #1108,Northline ,C,103,STORE,US$,20180502,,US,NC,Charlotte,11108,24000,Y
+1109,Northline Savannah #1109,Northline ,C,103,STORE,USD,20190603,,US,GA,Savannah,11109,52000,Y
+1110,Northline Jacksonville #1110,Northline ,C,104,STORE,USD,20200704,,US,FL,Jacksonville,11110,18000,N
+1111,Northline Atlanta #1111,Northline ,C,104,STORE,USD,20210805,,US,GA,Atlanta,11111,41000,N
+1112,Northline Jacksonville #1112,Northline ,C,108,STORE,USD,20140906,,US,FL,Jacksonville,11112,52000,Y
+1113,Northline Detroit #1113,Northline ,F,105,STORE,USD,20151007,,US,MI,Detroit,11113,24000,Y
+1114,Northline Columbus #1114,Northline ,F,105,STORE,USD,20161108,,US,OH,Columbus,11114,18000,N
+1115,Northline Detroit #1115,Northline ,F,105,STORE,USD,20171209,,US,MI,Detroit,11115,24000,Y
+1116,Northline Chicago #1116,Northline ,C,106,STORE,US$,20180110,,US,IL,Chicago,11116,18000,Y
+1117,Northline Milwaukee #1117,Northline ,C,106,STORE,USD,20190211,,US,WI,Milwaukee,11117,52000,N
+1118,Northline Chicago #1118,Northline ,C,106,STORE,USD,20200312,20261001,US,IL,Chicago,11118,52000,Y
+1119,Northline Minneapolis #1119,Northline ,C,107,STORE,US$,20210413,,US,MN,Minneapolis,11119,52000,Y
+1120,Northline Omaha #1120,Northline ,C,107,STORE,US$,20140514,,US,NE,Omaha,11120,24000,Y
+1121,Northline Minneapolis #1121,Northline ,C,107,STORE,USD,20150615,,US,MN,Minneapolis,11121,52000,N
+1122,Northline Des Moines #1122,Northline ,C,108,STORE,USD,20160716,,US,IA,Des Moines,11122,52000,Y
+1123,Northline Kansas City #1123,Northline ,C,108,STORE,USD,20170817,,US,MO,Kansas City,11123,41000,Y
+1124,Northline Des Moines #1124,Northline ,C,108,STORE,USD,20180918,,US,IA,Des Moines,11124,32000,Y
+1125,Northline Salt Lake City #1125,Northline ,C,109,STORE,USD,20191019,,US,UT,Salt Lake City,11125,52000,Y
+1126,Northline Billings #1126,Northline ,C,109,STORE,USD,20201120,,US,MT,Billings,11126,52000,Y
+1127,Northline Salt Lake City #1127,Northline ,C,109,STORE,USD,20211221,,US,UT,Salt Lake City,11127,41000,N
+1128,Northline Denver #1128,Northline ,F,110,STORE,USD,20140122,,US,CO,Denver,11128,52000,Y
+1129,Northline Boise #1129,Northline ,F,110,STORE,USD,20150223,,US,ID,Boise,11129,18000,Y
+1130,Northline Denver #1130,Northline ,F,110,STORE,USD,20160324,,US,CO,Denver,11130,52000,Y
+1131,Northline Fresno #1131,Northline ,C,111,STORE,USD,20170425,,US,CA,Fresno,11131,24000,Y
+1132,Northline Portland #1132,Northline ,C,111,STORE,USD,20180526,,US,OR,Portland,11132,32000,Y
+1133,Northline Fresno #1133,Northline ,C,111,STORE,US$,20190627,,US,CA,Fresno,11133,18000,Y
+1134,Northline Sacramento #1134,Northline ,C,112,STORE,USD,20200701,,US,CA,Sacramento,11134,18000,Y
+1135,Northline Seattle #1135,Northline ,C,112,STORE,USD,20210802,,US,WA,Seattle,11135,52000,Y
+1136,Northline Sacramento #1136,Northline ,C,112,STORE,USD,20140903,,US,CA,Sacramento,11136,32000,Y
+1137,Northline Ottawa #1137,Northline ,C,113,STORE,CAD,20151004,,CA,ON,Ottawa,M5V 2T6,18000,Y
+1138,Northline Ottawa #1138,Northline ,C,113,STORE,CAD,20161105,,CA,ON,Ottawa,M5V 2T6,24000,Y
+9901,Northline Web,Northline ,W,101,WEB,USD,20190601,,US,OH,Columbus,43004,0,Y
+503,DC West - Reno,DC West,C,114,WH,USD,20160115,,US,NV,Reno,89501,280000,N

@@ -28,19 +28,19 @@ TMP_CALENDAR,Silver,silver,,Parquet,none,seed,STG_FISCAL_CALENDAR,Validated and 
 TMP_SALES,Silver,silver,,Parquet,BUSINESS_DT,delta,STG_XSTORE_SALES + STG_NCR_SALES + STG_OMS_ORDER_LINES,"Conformed across all 3 feeds (the architecture departure); composite sales key, signs and currency normalised"
 TMP_PRICE,Silver,silver,,Parquet,BUSINESS_DT,delta,STG_PRICE_EVENTS + STG_PRICE_ZONE_LOC,Zone events expanded to location; overlaps resolved
 TMP_INVENTORY,Silver,silver,,Parquet,SNAPSHOT_DT,delta,STG_SOH_FULL,
-C_REJ_TABLE,Silver,silver,,DuckDB table,BATCH_DT,delta,All gates that quarantine,Quarantined rows plus the rule and reason code
-DIM_DEPT,Gold,gold,DIM_CATEGORY,DuckDB table,none,full,TMP_DEPT,SCD1
-DIM_SUBCLASS,Gold,gold,DIM_SUBCATEGORY,DuckDB table,none,full,TMP_SUBCLASS,SCD1
-DIM_BRAND,Gold,gold,DIM_BRAND,DuckDB table,none,full,TMP_BRAND,SCD1
-DIM_ITEM,Gold,gold,DIM_ITEM,DuckDB table,none,delta,TMP_ITEM,"SCD2 on name, subclass, brand"
-DIM_REGION,Gold,gold,DIM_REGION,DuckDB table,none,full,TMP_REGION,SCD1
-DIM_DISTRICT,Gold,gold,DIM_CITY,DuckDB table,none,full,TMP_DISTRICT,SCD1; holds RMS districts
-DIM_LOCN,Gold,gold,DIM_LOCN,DuckDB table,none,delta,TMP_LOCN,SCD2 on name and district
-DIM_CUSTOMER,Gold,gold,DIM_CUSTOMER,DuckDB table,none,seed,none (no customer source file),Single Unknown row; SCD1
-DIM_YEAR,Gold,gold,DIM_YEAR,DuckDB table,none,seed,TMP_CALENDAR,
-DIM_MONTH,Gold,gold,DIM_MONTH,DuckDB table,none,seed,TMP_CALENDAR,
-DIM_DAY,Gold,gold,DIM_DAY,DuckDB table,none,seed,TMP_CALENDAR,
-FCT_SALES,Gold,gold,FCT_SALES,DuckDB table,DAY_KY,delta,TMP_SALES,Transaction fact; delete-partition-then-insert
-FCT_PRICE,Gold,gold,FCT_PRICE,DuckDB table,DAY_KY,delta,TMP_PRICE,Positional fact; close then open
-FCT_INVENTORY,Gold,gold,FCT_INVENTORY,DuckDB table,DAY_KY,delta,TMP_INVENTORY,Positional fact; close then open
-AGG_SLS_DEPT_DISTRICT_MONTH,Gold,gold,AGG_SLS_CATEGORY_CITY_MONTH,DuckDB table,MONTH_KY,delta,FCT_SALES,"Rebuilt for affected months, never incremented"
+C_REJ_TABLE,Silver,silver,,Snowflake table,BATCH_DT,delta,All gates that quarantine,Quarantined rows plus the rule and reason code
+DIM_DEPT,Gold,gold,DIM_CATEGORY,Snowflake table,none,full,TMP_DEPT,SCD1
+DIM_SUBCLASS,Gold,gold,DIM_SUBCATEGORY,Snowflake table,none,full,TMP_SUBCLASS,SCD1
+DIM_BRAND,Gold,gold,DIM_BRAND,Snowflake table,none,full,TMP_BRAND,SCD1
+DIM_ITEM,Gold,gold,DIM_ITEM,Snowflake table,none,delta,TMP_ITEM,"SCD2 on name, subclass, brand"
+DIM_REGION,Gold,gold,DIM_REGION,Snowflake table,none,full,TMP_REGION,SCD1
+DIM_DISTRICT,Gold,gold,DIM_CITY,Snowflake table,none,full,TMP_DISTRICT,SCD1; holds RMS districts
+DIM_LOCN,Gold,gold,DIM_LOCN,Snowflake table,none,delta,TMP_LOCN,SCD2 on name and district
+DIM_CUSTOMER,Gold,gold,DIM_CUSTOMER,Snowflake table,none,seed,none (no customer source file),Single Unknown row; SCD1
+DIM_YEAR,Gold,gold,DIM_YEAR,Snowflake table,none,seed,TMP_CALENDAR,
+DIM_MONTH,Gold,gold,DIM_MONTH,Snowflake table,none,seed,TMP_CALENDAR,
+DIM_DAY,Gold,gold,DIM_DAY,Snowflake table,none,seed,TMP_CALENDAR,
+FCT_SALES,Gold,gold,FCT_SALES,Snowflake table,DAY_KY,delta,TMP_SALES,Transaction fact; delete-partition-then-insert
+FCT_PRICE,Gold,gold,FCT_PRICE,Snowflake table,DAY_KY,delta,TMP_PRICE,Positional fact; close then open
+FCT_INVENTORY,Gold,gold,FCT_INVENTORY,Snowflake table,DAY_KY,delta,TMP_INVENTORY,Positional fact; close then open
+AGG_SLS_DEPT_DISTRICT_MONTH,Gold,gold,AGG_SLS_CATEGORY_CITY_MONTH,Snowflake table,MONTH_KY,delta,FCT_SALES,"Rebuilt for affected months, never incremented"

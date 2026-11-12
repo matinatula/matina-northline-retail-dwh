@@ -8,7 +8,7 @@ Object-by-object placement, format, partitioning and load pattern are in `layer_
 | | Bronze | Silver | Gold |
 |---|---|---|---|
 | **Purpose** | Land source files exactly as received | Clean, conform and validate | Serve the 2.1 dimensional model |
-| **Format** | CSV/PSV file plus all-text Parquet copy | Parquet; rejects in a DuckDB table | DuckDB tables |
+| **Format** | CSV/PSV file plus all-text Parquet copy | Parquet; rejects in a Snowflake table | Snowflake tables |
 | **Partitioning** | `INGEST_DT` | `BUSINESS_DT` / `SNAPSHOT_DT` for facts, none for dimensions | `DAY_KY` for facts, `MONTH_KY` for the aggregate |
 | **Guarantees** | Every source row is kept, untouched, with its file name and ingest date. Append-only: nothing is edited or deleted except by a reload. Arrival checked against `EXTRACT_MANIFEST`. | Typed columns, ISO dates, USD in dollars, signs normalised (returns are negative), one location-key form, item keys resolved through UPC, composite sales key, no duplicate keys, parent keys exist. Every dropped row is in `C_REJ_TABLE` with a rule and reason code. | Surrogate keys on every row, SCD1/SCD2 applied, every fact foreign key exists in its dimension, fact grain unique, Gold ties back to Silver. |
 | **Does NOT guarantee** | Valid types, valid keys, no duplicates, consistent dates or currency. Defects such as the Xstore trailer mismatch and the repeated NCR header stay in. | History (Silver holds current-state conformed data only), surrogate keys, or business-ready aggregates. | Source-faithful values or the original messy formats. Seeded dimensions (calendar, customer) are not tracked from the source. |
