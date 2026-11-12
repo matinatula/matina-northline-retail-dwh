@@ -49,7 +49,7 @@ wait_for_complete_signal -> list_files -> load_file (one task per file) -> repor
 1. Start Airflow: `docker compose up -d`. The Snowflake provider is installed through `_PIP_ADDITIONAL_REQUIREMENTS` in `.env`.
 2. In the Airflow UI, create the two Connections (`snowflake_default`, `northline_fs`) and import `include/airflow_variables.json` under Admin, Variables. Credentials are stored only in the Airflow Connection, never in the repository.
 3. Create the schema once in Snowflake: `CREATE SCHEMA IF NOT EXISTS SNOWFLAKE_LEARNING_DB.MATINA_ORCHESTRATION;`
-4. Put the four CSV files in `data/incoming/` (this folder is git-ignored).
+4. The four sample CSV files are already in `data/incoming/`. If you re-run, turn off `archive_after_load` when triggering, or copy the files back.
 5. Trigger the DAG. `wait_for_complete_signal` shows *Up For Reschedule* while it waits.
 6. Create the signal: `New-Item data\incoming\.COMPLETE -ItemType File`. The rest of the DAG then runs.
 
