@@ -1,0 +1,7 @@
+{
+  "northline_source_folder": "/opt/airflow/data/incoming",
+  "northline_target_schema": "MATINA_ORCHESTRATION",
+  "northline_stage_name": "NORTHLINE_STAGE",
+  "northline_file_table_map": "{\"sales.csv\": \"STG_SALES\", \"inventory.csv\": \"STG_INVENTORY\", \"item.csv\": \"STG_ITEM\", \"location.csv\": \"STG_LOCATION\"}",
+  "northline_expected_files": "sales.csv,inventory.csv,item.csv,location.csv"
+}
