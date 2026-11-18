@@ -1,6 +1,6 @@
 # matina-northline-retail-dwh
 
-## Assignment 3: Airflow DAG that loads CSV files into Snowflake
+## Assignment 2.2: Airflow DAG that loads CSV files into Snowflake
 
 **Goal:** wait for a `.COMPLETE` signal file in a local folder, then load every CSV in that folder into its own Snowflake table, with no transformation.
 
@@ -65,3 +65,57 @@ wait_for_complete_signal -> list_files -> load_file (one task per file) -> repor
 - The DAG also runs on its daily schedule. With `max_active_runs=1`, a manual run queues behind a scheduled run that is still waiting for the signal.
 - Files are archived after a successful run, so a rerun needs the files and a new `.COMPLETE` placed in `data/incoming/` again.
 - The helper tests are in `tests/`.
+
+Your answer is right on both counts, and it's a strong demo answer. I'd add one more: a made-up region would also put store 503 into the region roll-ups, so a distribution center would silently distort regional totals.
+
+Here is the documentation for this step, in plain language you can edit into your own voice. Check the screenshot filenames match what's in your folder.
+
+---
+
+### 2.3 Step 5: Silver layer for items and stores
+
+**What was done**
+
+The ETL DAG (`retail_etl`) was extended with seven Silver tasks. They run for the business date 2026-09-16 after the Bronze loads finish. The item file feeds four tasks (department, subclass, brand, item). The store file feeds three tasks (region, district, store). Each SQL file first deletes that day's rows, so re-running the same day does not create duplicates.
+
+**Why it was done**
+
+Bronze stores the files exactly as they arrived, all as text. Silver is where the data is cleaned and typed (for example, store open dates become real dates). Rows that cannot be placed in the hierarchy are not fixed with made-up values. They go to `C_REJ_TABLE` with a reason code, so they can be investigated.
+
+**Evidence**
+
+- `2.3_07_silver_dag_green.png`: all Silver tasks succeeded.
+- `2.3_18_silver_counts.png`: row counts in the Silver tables and in `C_REJ_TABLE`.
+
+**Results for 2026-09-16**
+
+| Table | Rows |
+|---|---|
+| TMP_DEPT | 13 |
+| TMP_SUBCLASS | 83 |
+| TMP_BRAND | 11 |
+| TMP_ITEM | 728 |
+| TMP_REGION | 7 |
+| TMP_DISTRICT | 13 |
+| TMP_LOCN | 39 |
+| C_REJ_TABLE | 10 |
+
+**Reconciliation (Bronze = Silver + rejects + duplicates removed)**
+
+- Items: 738 in Bronze = 728 in Silver + 9 rejected + 1 duplicate removed.
+  - 8 items (10000011 to 10000018) have a class and subclass but no department, so they were rejected as `NULL_HIERARCHY`.
+  - 1 row has no item id, so it was rejected as `NULL_ITEM_ID`.
+  - Item 10000004 appears twice with identical values. One copy is kept by `QUALIFY ROW_NUMBER() = 1`.
+- Stores: 40 in Bronze = 39 in Silver + 1 rejected.
+  - Store 503 ("DC West - Reno") is a distribution center (type C) with no region, so it was rejected as `NULL_HIERARCHY`.
+
+The duplicate can be verified with: `SELECT ITEM, COUNT(*) FROM STG_ITEM_MASTER GROUP BY ITEM HAVING COUNT(*) > 1;`
+
+**Design decisions**
+
+1. **Reject instead of fill with a default.** A made-up region or department could be wrong, and it would hide the defect. It would also distort the roll-ups (for example, a distribution center counted in a region's sales). A rejected row can be investigated and fixed at the source.
+2. **Silent removal of exact duplicates.** The duplicate copy is identical to the kept row, so no information is lost. This is a known limitation: the removed copy is not recorded in `C_REJ_TABLE`.
+3. **The "clean" file was not fully clean.** The baseline file still contained 10 defective rows. Silver caught all of them, which shows the quarantine logic working before the faulty-data test.
+
+---
+
