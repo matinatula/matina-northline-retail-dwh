@@ -1,7 +1,8 @@
 """2.3 ETL, built one step at a time.
 
-Step 4 (this file): wait for the day's files on the stage, then load them into Bronze.
-Later steps add Silver, the dimensions, the facts and the reconcile check.
+Step 4: wait for the day's files on the stage, then load them into Bronze.
+Step 5 (this file): build Silver for items and stores (typed, cleaned, with rejects).
+Later steps add the Silver sales and stock, the dimensions, the facts and the reconcile check.
 
 The "day" is the run's logical date: set it when you trigger or backfill (2026-09-16 and so on).
 """
@@ -14,6 +15,21 @@ from airflow.sdk import dag, task
 SNOWFLAKE_CONN = "snowflake_default"
 STAGE = "@SNOWFLAKE_LEARNING_DB.MATINA_ETL.ETL_STAGE"
 FILE_TYPES = ["item_master", "store_master", "pos_sales", "inventory_snapshot"]
+
+# Silver tables that are built from each Bronze file (one SQL file and one task per table)
+SILVER_FROM_ITEMS = ["dept", "subclass", "brand", "item"]
+SILVER_FROM_STORES = ["region", "district", "locn"]
+
+
+def run_sql(task_id, sql_file):
+    """One task = one SQL file inside include/sql."""
+    return SQLExecuteQueryOperator(
+        task_id=task_id,
+        conn_id=SNOWFLAKE_CONN,
+        sql=sql_file,
+        hook_params={"schema": "MATINA_ETL"},
+        split_statements=True,
+    )
 
 
 @dag(
@@ -37,19 +53,17 @@ def retail_etl():
         print(f"day {day}: missing files = {missing}")
         return not missing
 
-    # One task per file; each just runs one SQL file in the include/sql/bronze folder.
-    load_bronze = [
-        SQLExecuteQueryOperator(
-            task_id=f"load_bronze_{name}",
-            conn_id=SNOWFLAKE_CONN,
-            sql=f"bronze/load_stg_{name}.sql",
-            hook_params={"schema": "MATINA_ETL"},
-            split_statements=True,
-        )
-        for name in FILE_TYPES
-    ]
+    # BRONZE: one task per file, each runs one SQL file in include/sql/bronze.
+    bronze = {name: run_sql(f"load_bronze_{name}", f"bronze/load_stg_{name}.sql") for name in FILE_TYPES}
 
-    wait_for_files("{{ ds_nodash }}") >> load_bronze
+    # SILVER: one task per table, each runs one SQL file in include/sql/silver.
+    # Each one starts as soon as the Bronze file it reads has loaded, and they run side by side.
+    silver_items = [run_sql(f"silver_{n}", f"silver/load_tmp_{n}.sql") for n in SILVER_FROM_ITEMS]
+    silver_stores = [run_sql(f"silver_{n}", f"silver/load_tmp_{n}.sql") for n in SILVER_FROM_STORES]
+
+    wait_for_files("{{ ds_nodash }}") >> list(bronze.values())
+    bronze["item_master"] >> silver_items
+    bronze["store_master"] >> silver_stores
 
 
 retail_etl()
