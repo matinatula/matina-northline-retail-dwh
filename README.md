@@ -183,3 +183,49 @@ Breakdown of the 1,376 Silver rows:
 2. The item check uses the Silver item table of the same day, so the item step must finish first. This order is enforced in the DAG.
 
 ---
+
+### 2.3 Step 7: Silver layer for inventory
+
+**What was done**
+
+A new task, `silver_inventory`, was added to the `retail_etl` DAG. It runs `load_tmp_inventory.sql` for the business date 2026-09-16, after the Bronze inventory load finishes. It does not depend on the Silver item load, because it does not join to items. The SQL first deletes that day's rows from `TMP_INVENTORY` and from its rejects, so re-running the same day does not create duplicates.
+
+**Why it was done**
+
+Bronze keeps the snapshot as text. Silver converts the snapshot date (format `YYYYMMDD`) and the quantity, and calculates the stock value as `STOCK_ON_HAND × AV_COST`, rounded to 2 decimals. Rows that cannot be trusted go to `C_REJ_TABLE` with a reason code.
+
+**Reject rules, checked in this order**
+
+| Reason code | Rule |
+|---|---|
+| `NULL_ITEM_ID` | Item id is blank or NULL |
+| `BAD_SNAPSHOT_DT` | Snapshot date is missing, or later than the load day |
+| `BAD_NUMBER` | Stock quantity cannot be converted |
+
+**Evidence**
+
+- `2.3_13_silver_inventory_dag_green.png`: `silver_inventory` succeeded.
+- `2.3_14_silver_inventory_counts.png`: `TMP_INVENTORY` row count and rejects by reason.
+
+**Results for 2026-09-16**
+
+| Table or reason | Rows |
+|---|---|
+| Bronze `STG_INVENTORY_SNAPSHOT` | 12,485 |
+| `TMP_INVENTORY` | 12,484 |
+| Rejected: `BAD_SNAPSHOT_DT` | 1 |
+
+Reconciliation: Bronze 12,485 = Silver 12,484 + 1 rejected.
+
+**Findings**
+
+1. **Placeholder snapshot date.** One row (item 10000002, store 9901) has the snapshot date 2099-01-04 with blank and NULL fields. 2099-01-04 is a valid date, so a plain date conversion does not catch it. The rule "snapshot date later than the load day" does. The same item and store also has a normal row dated 2026-09-13, so rejecting the placeholder row also removes the only duplicate in the file.
+2. **Warehouse stock is kept.** The file has store rows (`S`) and warehouse rows (`W`, 653 rows). Warehouse stock is real stock and is not rejected.
+3. **Stock value.** `STK_VAL` is calculated in Silver from quantity and average cost, because Bronze has no value column.
+
+**Design decisions**
+
+1. A snapshot cannot be dated after the day it was loaded, so a future date is treated as a placeholder and rejected instead of corrected.
+2. The weekly snapshot is repeated in each daily file. The day's file is stored under its own `BATCH_DT`, which is what the later positional (close-and-reopen) load will compare.
+
+---
