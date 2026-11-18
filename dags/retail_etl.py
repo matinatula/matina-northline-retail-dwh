@@ -63,12 +63,14 @@ def retail_etl():
         # Silver sales needs TWO things first: the Bronze sales file, and TMP_ITEM
     # (it checks every sold item exists there).
     silver_sales = run_sql("silver_sales", "silver/load_tmp_sales.sql")
+    silver_inventory = run_sql("silver_inventory", "silver/load_tmp_inventory.sql")
 
     wait_for_files("{{ ds_nodash }}") >> list(bronze.values())
     bronze["item_master"] >> silver_items
     bronze["store_master"] >> silver_stores
     bronze["pos_sales"] >> silver_sales
     silver_items[-1] >> silver_sales   # silver_items[-1] is the "item" task, the last in the list
+    bronze["inventory_snapshot"] >> silver_inventory
 
 
 retail_etl()
