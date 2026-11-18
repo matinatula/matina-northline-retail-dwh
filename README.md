@@ -53,11 +53,11 @@ wait_for_complete_signal -> list_files -> load_file (one task per file) -> repor
 5. Trigger the DAG. `wait_for_complete_signal` shows *Up For Reschedule* while it waits.
 6. Create the signal: `New-Item data\incoming\.COMPLETE -ItemType File`. The rest of the DAG then runs.
 
-### Evidence (`output_ss/`)
+### Evidence (`output_screenshots/`)
 
-- `03_waiting_for_complete_signal.png`: sensor waiting for the signal
-- `04_after_complete_file.png` and `05_dag_run_success.png`: all tasks green, four mapped `load_file` tasks
-- `06_snowflake_row_counts.png`: 500 / 500 / 738 / 40 rows in Snowflake
+- `2.2_02_waiting_for_complete_signal.png`: sensor waiting for the signal
+- `2.2_03_after_complete_file.png` and `05_dag_run_success.png`: all tasks green, four mapped `load_file` tasks
+- `2.2_05_snowflake_row_counts.png`: 500 / 500 / 738 / 40 rows in Snowflake
 
 ### Notes and limitations
 
