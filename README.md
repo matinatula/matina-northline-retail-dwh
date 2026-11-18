@@ -119,3 +119,67 @@ The duplicate can be verified with: `SELECT ITEM, COUNT(*) FROM STG_ITEM_MASTER 
 
 ---
 
+**The duplicate explained.** It isn't an exact copy this time. The two rows for item 10000002 at store 9901 are:
+- A normal row: snapshot `20260913`, stock 28.
+- A broken row: snapshot `20990104`, stock 12, with blank and NULL fields (`IN_TRANSIT_QTY` blank, `TSF_RESERVED_QTY` NULL).
+
+This is the same `20990104` row we found earlier, which is why that date had only one row. It also means the duplicate pair and the sentinel date are one problem. Rejecting the `20990104` row as `BAD_SNAPSHOT_DT` leaves exactly one row for that item and store, so no silent dedup is needed. The copy to keep is the `20260913` one.
+
+---
+
+### 2.3 Step 6: Silver layer for sales
+
+**What was done**
+
+A new task, `silver_sales`, was added to the `retail_etl` DAG. It runs `load_tmp_sales.sql` for the business date 2026-09-16. It waits for two things: the Bronze sales load (`load_bronze_pos_sales`) and the Silver item load (`silver_item`). It needs `TMP_ITEM` because every sold item is checked against it. The SQL first deletes that day's rows from `TMP_SALES` and from the sales rejects, so re-running the same day does not create duplicates.
+
+**Why it was done**
+
+Bronze keeps the sales file as text. Silver converts it to proper types (dates and numbers with `TRY_TO_DATE` and `TRY_TO_NUMBER`, which return NULL for a bad value instead of failing the load) and builds a transaction id from store, register and sequence number. Rows that cannot be trusted go to `C_REJ_TABLE` with a reason code. They are not filled with default values.
+
+**Reject rules, checked in this order**
+
+| Reason code | Rule |
+|---|---|
+| `NULL_ITEM_ID` | Item id is blank or NULL |
+| `BAD_DATE_OR_NUMBER` | Date, quantity or net amount cannot be converted |
+| `NEGATIVE_QTY_ON_SALE` | Negative quantity on a transaction of type SALE |
+| `UNKNOWN_ITEM` | Item is not in `TMP_ITEM` |
+
+A row gets the first reason that applies, so it is rejected only once. Negative quantities on `RETURN` rows are valid and are kept.
+
+**Evidence**
+
+- `2.3_09_silver_sales_dag_green.png`: `silver_sales` succeeded after `silver_item`.
+- `2.3_10_silver_sales_counts.png`: `TMP_SALES` row count and rejects by reason.
+
+**Results for 2026-09-16**
+
+| Table or reason | Rows |
+|---|---|
+| Bronze `STG_POS_SALES` | 1,471 |
+| `TMP_SALES` | 1,376 |
+| Rejected: `NULL_ITEM_ID` | 82 |
+| Rejected: `UNKNOWN_ITEM` | 13 |
+
+Reconciliation: Bronze 1,471 = Silver 1,376 + 82 + 13.
+
+Breakdown of the 1,376 Silver rows:
+
+| Transaction type | Rows | Net amount |
+|---|---|---|
+| SALE | 1,264 | 166,050.78 |
+| RETURN | 112 | -8,629.42 |
+
+**Findings**
+
+1. **Cascading rejects.** All 13 `UNKNOWN_ITEM` sales belong to items 10000014 to 10000018. Those items were already rejected in the item step because they have no department. A rejected item therefore also removes its sales from Silver, which is intended: a sale for an item that is not in the model cannot be placed in any roll-up.
+2. **Returns are kept.** Returns have negative quantities and negative net amounts. They are valid business events and reduce net sales. Rejecting them would overstate sales.
+3. **Typing precision.** Amounts are converted with explicit precision and scale (`TRY_TO_NUMBER(x, 18, 2)`), because the default scale of 0 would round 97.54 to 98.
+
+**Design decisions**
+
+1. Null items are rejected, not filled with a default, so defects stay visible and can be fixed at the source.
+2. The item check uses the Silver item table of the same day, so the item step must finish first. This order is enforced in the DAG.
+
+---
