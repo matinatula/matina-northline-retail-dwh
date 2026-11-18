@@ -56,7 +56,7 @@ wait_for_complete_signal -> list_files -> load_file (one task per file) -> repor
 ### Evidence (`output_screenshots/`)
 
 - `2.2_02_waiting_for_complete_signal.png`: sensor waiting for the signal
-- `2.2_03_after_complete_file.png` and `05_dag_run_success.png`: all tasks green, four mapped `load_file` tasks
+- `2.2_03_after_complete_file.png` and `2.2_04_dag_run_success.png`: all tasks green, four mapped `load_file` tasks
 - `2.2_05_snowflake_row_counts.png`: 500 / 500 / 738 / 40 rows in Snowflake
 
 ### Notes and limitations
