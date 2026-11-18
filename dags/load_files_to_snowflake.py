@@ -1,23 +1,6 @@
 """Load every CSV from a local folder into Snowflake, once a .COMPLETE signal appears.
-
-Flow
-----
-    wait_for_complete_signal          (FileSensor, reschedule mode, with timeout)
-              |
-          list_files                  (returns file PATHS through XCom)
-              |
-    load_file  x N                    (dynamic task mapping: one task per file,
-              |                        each uses SnowflakeHook, each retries alone)
-        +-----+------------------+
-        |                        |
-      report                alert_on_failure     (trigger rule: one_failed)
-        |
-    archive_files
-
 No transformation happens: every column lands as text, as it is in the file.
 Airflow triggers the work; Snowflake performs it (PUT + COPY INTO).
-
-Where each session concept is used is listed in docs/orchestration_assignment.md.
 """
 from __future__ import annotations
 
