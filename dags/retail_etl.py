@@ -1,8 +1,9 @@
 """2.3 ETL, built one step at a time.
 
 Step 4: wait for the day's files on the stage, then load them into Bronze.
-Step 5 (this file): build Silver for items and stores (typed, cleaned, with rejects).
-Later steps add the Silver sales and stock, the dimensions, the facts and the reconcile check.
+Step 5: build Silver (typed, cleaned, with rejects) for items, stores, sales and inventory.
+Step 6 (this file): build the Gold dimensions. Parents load before children.
+Later steps add the facts, the aggregate and the reconcile check.
 
 The "day" is the run's logical date: set it when you trigger or backfill (2026-09-16 and so on).
 """
@@ -20,6 +21,9 @@ FILE_TYPES = ["item_master", "store_master", "pos_sales", "inventory_snapshot"]
 SILVER_FROM_ITEMS = ["dept", "subclass", "brand", "item"]
 SILVER_FROM_STORES = ["region", "district", "locn"]
 
+# Gold dimensions that are loaded from Silver (one SQL file and one task per table)
+GOLD_DIMS = ["dept", "subclass", "brand", "item", "region", "district", "locn"]
+
 
 def run_sql(task_id, sql_file):
     """One task = one SQL file inside include/sql."""
@@ -36,8 +40,8 @@ def run_sql(task_id, sql_file):
     dag_id="retail_etl",
     start_date=datetime(2026, 9, 16),
     schedule="@daily",
-    catchup=False,            # old days are loaded on purpose with a backfill, not automatically
-    max_active_runs=1,        # one day at a time, in order
+    catchup=False,           # old days are loaded on purpose with a backfill, not automatically
+    max_active_runs=1,       # one day at a time, in order
     template_searchpath=["/opt/airflow/include/sql"],   # where the .sql files live inside Docker
     default_args={"retries": 1, "retry_delay": timedelta(minutes=1)},
 )
@@ -60,17 +64,35 @@ def retail_etl():
     # Each one starts as soon as the Bronze file it reads has loaded, and they run side by side.
     silver_items = [run_sql(f"silver_{n}", f"silver/load_tmp_{n}.sql") for n in SILVER_FROM_ITEMS]
     silver_stores = [run_sql(f"silver_{n}", f"silver/load_tmp_{n}.sql") for n in SILVER_FROM_STORES]
-        # Silver sales needs TWO things first: the Bronze sales file, and TMP_ITEM
+
+    # Silver sales needs TWO things first: the Bronze sales file, and TMP_ITEM
     # (it checks every sold item exists there).
     silver_sales = run_sql("silver_sales", "silver/load_tmp_sales.sql")
+
+    # Silver inventory only needs the Bronze inventory file (it does not join to items).
     silver_inventory = run_sql("silver_inventory", "silver/load_tmp_inventory.sql")
+
+    # The Silver tasks by name, so the Gold dependencies below are easy to read.
+    silver = dict(zip(SILVER_FROM_ITEMS + SILVER_FROM_STORES, silver_items + silver_stores))
+
+    # GOLD: one task per dimension, each runs one SQL file in include/sql/gold.
+    gold = {n: run_sql(f"gold_{n}", f"gold/load_dim_{n}.sql") for n in GOLD_DIMS}
 
     wait_for_files("{{ ds_nodash }}") >> list(bronze.values())
     bronze["item_master"] >> silver_items
     bronze["store_master"] >> silver_stores
     bronze["pos_sales"] >> silver_sales
-    silver_items[-1] >> silver_sales   # silver_items[-1] is the "item" task, the last in the list
+    silver["item"] >> silver_sales
     bronze["inventory_snapshot"] >> silver_inventory
+
+    # Gold: parents load before children. The roots (dept, brand, region) run in parallel.
+    silver["dept"] >> gold["dept"]
+    silver["brand"] >> gold["brand"]
+    silver["region"] >> gold["region"]
+    [gold["dept"], silver["subclass"]] >> gold["subclass"]
+    [gold["region"], silver["district"]] >> gold["district"]
+    [gold["subclass"], gold["brand"], silver["item"]] >> gold["item"]
+    [gold["district"], silver["locn"]] >> gold["locn"]
 
 
 retail_etl()

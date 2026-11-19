@@ -229,3 +229,57 @@ Reconciliation: Bronze 12,485 = Silver 12,484 + 1 rejected.
 2. The weekly snapshot is repeated in each daily file. The day's file is stored under its own `BATCH_DT`, which is what the later positional (close-and-reopen) load will compare.
 
 ---
+
+## 2.3 Step 8: Gold dimensions
+
+### What was done
+Seven Gold tasks were added to the `retail_etl` DAG, one per dimension. Each runs its own SQL file from `include/sql/gold/` for the business date 2026-09-16. Parents load before children, and independent dimensions run in parallel:
+- Roots, in parallel: `DIM_DEPT`, `DIM_BRAND`, `DIM_REGION`.
+- `DIM_SUBCLASS` waits for `DIM_DEPT`, and `DIM_DISTRICT` waits for `DIM_REGION`.
+- `DIM_ITEM` waits for `DIM_SUBCLASS` and `DIM_BRAND`, and `DIM_LOCN` waits for `DIM_DISTRICT`.
+
+Each task also waits for the Silver task that feeds it. The time dimensions (`DIM_YEAR`, `DIM_MONTH`, `DIM_DAY`) and `DIM_CUSTOMER` are seeds and were already loaded, so no task was needed.
+
+### Why it was done
+Gold serves the dimensional model. Every row needs a surrogate key (`_KY`), and every child row must point to a real parent key. Silver holds the cleaned business ids, so the Gold SQL translates each id to its parent's surrogate key.
+
+### Dimension types
+| Dimension | Type | Why |
+|---|---|---|
+| `DIM_DEPT`, `DIM_SUBCLASS`, `DIM_BRAND`, `DIM_REGION`, `DIM_DISTRICT` | SCD1 (overwrite) | A changed name is a correction. No history is needed. |
+| `DIM_ITEM` | SCD2 on name, subclass, brand | A change of subclass or brand changes which group old sales belong to, so the old version is kept. |
+| `DIM_LOCN` | SCD2 on name and district | A store that moves district (for example store 1112) must keep its old sales in the old district. |
+
+SCD2 works in four steps: delete the versions this day opened, reopen the versions this day closed, close the open version of every changed key (`EFF_TO_DT` = day − 1, `CURR_FLG` = FALSE), then insert a new open version. The first two steps make a reload of the same day give the same result.
+
+### Naming
+Gold uses the 2.2 names, to match Silver and the architecture documents. The 2.1 tables `DIM_CATEGORY`, `DIM_SUBCATEGORY` and `DIM_CITY` were renamed, with their columns, to `DIM_DEPT`, `DIM_SUBCLASS` and `DIM_DISTRICT` (script: `include/sql/ddl/rename_gold_to_2_2.sql`).
+
+### Evidence
+- `2.3_15_full_dag_green.png`: the full DAG, all green.
+- `2.3_16_gold_dim_counts.png`: Gold row counts and the orphan check, after a re-run.
+
+### Results for 2026-09-16
+| Dimension | Silver rows | Gold rows | Current rows |
+|---|---|---|---|
+| DIM_DEPT | 13 | 13 | 13 |
+| DIM_SUBCLASS | 83 | 83 | 83 |
+| DIM_BRAND | 11 | 11 | 11 |
+| DIM_ITEM | 728 | 728 | 728 |
+| DIM_REGION | 7 | 7 | 7 |
+| DIM_DISTRICT | 13 | 13 | 13 |
+| DIM_LOCN | 39 | 39 | 39 |
+
+Orphan items (items with no matching subclass): 0. A re-run of the same day gave identical counts.
+
+### Findings
+1. **Ownership.** The Gold tables had been created under `ACCOUNTADMIN`, so the Airflow role could not write to them. Ownership was transferred to `SNOWFLAKE_LEARNING_ROLE`.
+2. **Surrogate keys.** The tables have no identity column, so the SQL generates each key as the current maximum plus the row number, for new rows only.
+3. **Rejected rows do not reach Gold.** The 9 rejected items and store 503 were stopped in Silver, which is why Gold has 728 items and 39 stores.
+
+### Known limits
+- An item or store that disappears from a later file is not closed.
+- Reloading a dimension replaces that day's keys, so facts must be reloaded after it (the order in the reload policy).
+
+---
+
