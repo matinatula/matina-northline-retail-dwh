@@ -1,16 +1,9 @@
--- Gold: DIM_ITEM (item, SCD2 = history kept). Built from TMP_ITEM.
--- A version is valid from EFF_FROM_DT to EFF_TO_DT (9999-12-31 = still open) and CURR_FLG marks the open one.
--- Run by Airflow once per day. Reload-safe: steps 1 and 2 undo anything this day did before, then 3 and 4 redo it.
+-- Gold: DIM_ITEM (item, SCD2 = history kept).
+-- A version is valid from EFF_FROM_DT to EFF_TO_DT (9999-12-31 = still open); CURR_FLG marks the open one.
+-- Forward-only: a day only ever changes the OPEN version. Re-running any day that is already loaded
+-- changes nothing, so the facts that point at these keys stay valid.
 
--- 1. Undo: delete the versions that this business day opened earlier.
-DELETE FROM SNOWFLAKE_LEARNING_DB.MATINA_ETL.DIM_ITEM WHERE EFF_FROM_DT >= '{{ ds }}'::DATE;
-
--- 2. Undo: reopen the versions that this business day closed (they were closed at day - 1).
-UPDATE SNOWFLAKE_LEARNING_DB.MATINA_ETL.DIM_ITEM
-SET EFF_TO_DT = '9999-12-31'::DATE, CURR_FLG = TRUE, REC_UPDT_TS = SYSDATE()
-WHERE EFF_TO_DT = DATEADD(day, -1, '{{ ds }}'::DATE);
-
--- 3. Close: the open version of every item whose tracked attributes changed (name, subclass, brand).
+-- 1. Close: the open version of a key whose tracked attributes changed (name, subclass, brand) ends the day before.
 UPDATE SNOWFLAKE_LEARNING_DB.MATINA_ETL.DIM_ITEM d
 SET EFF_TO_DT = DATEADD(day, -1, '{{ ds }}'::DATE), CURR_FLG = FALSE, REC_UPDT_TS = SYSDATE(), BATCH_ID = '{{ ds }}'
 FROM (
@@ -20,10 +13,23 @@ FROM (
   LEFT JOIN SNOWFLAKE_LEARNING_DB.MATINA_ETL.DIM_BRAND b ON b.BRAND_ID = s.BRAND_ID AND b.CURR_FLG
   WHERE s.BATCH_DT = '{{ ds }}'::DATE
 ) s
-WHERE d.ITEM_ID = s.ID AND d.CURR_FLG
+WHERE d.ITEM_ID = s.ID AND d.CURR_FLG AND d.EFF_FROM_DT < '{{ ds }}'::DATE
   AND (d.ITEM_NAME IS DISTINCT FROM s.NAME OR d.SUBCLASS_KY IS DISTINCT FROM s.SKY OR d.BRAND_KY IS DISTINCT FROM s.BKY);
 
--- 4. Open: a new version for every id that has no open version (brand new ids, and the ones closed in step 3).
+-- 2. Same-day correction: if this day's own version is re-run with different values, fix it in place.
+UPDATE SNOWFLAKE_LEARNING_DB.MATINA_ETL.DIM_ITEM d
+SET ITEM_NAME = s.NAME, SUBCLASS_KY = s.SKY, BRAND_KY = s.BKY, REC_UPDT_TS = SYSDATE(), BATCH_ID = '{{ ds }}'
+FROM (
+  SELECT s.ITEM_ID AS ID, s.ITEM_NAME AS NAME, sc.SUBCLASS_KY AS SKY, b.BRAND_KY AS BKY
+  FROM SNOWFLAKE_LEARNING_DB.MATINA_ETL.TMP_ITEM s
+  JOIN SNOWFLAKE_LEARNING_DB.MATINA_ETL.DIM_SUBCLASS sc ON sc.SUBCLASS_ID = s.SUBCLASS_ID AND sc.CURR_FLG
+  LEFT JOIN SNOWFLAKE_LEARNING_DB.MATINA_ETL.DIM_BRAND b ON b.BRAND_ID = s.BRAND_ID AND b.CURR_FLG
+  WHERE s.BATCH_DT = '{{ ds }}'::DATE
+) s
+WHERE d.ITEM_ID = s.ID AND d.CURR_FLG AND d.EFF_FROM_DT = '{{ ds }}'::DATE
+  AND (d.ITEM_NAME IS DISTINCT FROM s.NAME OR d.SUBCLASS_KY IS DISTINCT FROM s.SKY OR d.BRAND_KY IS DISTINCT FROM s.BKY);
+
+-- 3. Open: a new version for every key with no open version (brand new keys, and the ones closed in step 1).
 INSERT INTO SNOWFLAKE_LEARNING_DB.MATINA_ETL.DIM_ITEM
   (ITEM_KY, ITEM_ID, ITEM_NAME, SUBCLASS_KY, BRAND_KY, CURR_FLG, EFF_FROM_DT, EFF_TO_DT, REC_INS_TS, REC_UPDT_TS, SRC_SYS_CD, BATCH_ID)
 SELECT (SELECT COALESCE(MAX(ITEM_KY), 0) FROM SNOWFLAKE_LEARNING_DB.MATINA_ETL.DIM_ITEM) + ROW_NUMBER() OVER (ORDER BY s.ID),
