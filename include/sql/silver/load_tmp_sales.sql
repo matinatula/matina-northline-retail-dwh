@@ -1,6 +1,7 @@
 -- Silver: sales, with rejects for bad rows.
 -- Run by Airflow once per day. Airflow fills in the day (for example 2026-09-16) before running.
 -- Needs TMP_ITEM to be loaded first, because it checks that every sold item exists.
+-- Keeps the unit price (UNIT_PRC) so that TMP_PRICE can be built from the clean sales lines.
 
 -- 1. Clear this day's earlier output so a re-run starts clean.
 DELETE FROM SNOWFLAKE_LEARNING_DB.MATINA_ETL.TMP_SALES WHERE BATCH_DT = '{{ ds }}'::DATE;
@@ -49,7 +50,7 @@ WHERE REASON IS NOT NULL;
 --    in case the file lists the same line twice.
 INSERT INTO SNOWFLAKE_LEARNING_DB.MATINA_ETL.TMP_SALES
     (BATCH_DT, BUSINESS_DT, TRANSACTION_ID, LINE_NUMBER, ITEM_ID, LOCN_ID,
-     SLS_QTY, SLS_AMT, DSC_AMT, NET_AMT, TRANS_TYPE, SRC_FILE_NM)
+     SLS_QTY, SLS_AMT, DSC_AMT, NET_AMT, TRANS_TYPE, SRC_FILE_NM, UNIT_PRC)
 WITH parsed AS (
     SELECT NULLIF(NULLIF(TRIM(ITEM_ID), ''), 'NULL') AS ITEM_ID,
            TRY_TO_DATE(BUSINESS_DATE) AS BUSINESS_DT,
@@ -61,12 +62,13 @@ WITH parsed AS (
            TRY_TO_NUMBER(DISCOUNT_AMT, 18, 2) AS DSC_AMT,
            TRY_TO_NUMBER(NET_AMT, 18, 2) AS NET_AMT,
            TRANS_TYPCODE AS TRANS_TYPE,
-           SRC_FILE_NM
+           SRC_FILE_NM,
+           TRY_TO_NUMBER(UNIT_PRICE, 18, 2) AS UNIT_PRC
     FROM SNOWFLAKE_LEARNING_DB.MATINA_ETL.STG_POS_SALES
     WHERE BATCH_DT = '{{ ds }}'::DATE
 )
 SELECT '{{ ds }}'::DATE, p.BUSINESS_DT, p.TRANSACTION_ID, p.LINE_NUMBER, p.ITEM_ID, p.LOCN_ID,
-       p.SLS_QTY, p.SLS_AMT, p.DSC_AMT, p.NET_AMT, p.TRANS_TYPE, p.SRC_FILE_NM
+       p.SLS_QTY, p.SLS_AMT, p.DSC_AMT, p.NET_AMT, p.TRANS_TYPE, p.SRC_FILE_NM, p.UNIT_PRC
 FROM parsed p
 JOIN (SELECT DISTINCT ITEM_ID FROM SNOWFLAKE_LEARNING_DB.MATINA_ETL.TMP_ITEM
       WHERE BATCH_DT = '{{ ds }}'::DATE) i

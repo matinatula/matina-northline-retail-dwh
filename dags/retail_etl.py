@@ -3,7 +3,7 @@
 Step 4: wait for the day's files on the stage, then load them into Bronze.
 Step 5: build Silver (typed, cleaned, with rejects) for items, stores, sales and inventory.
 Step 6: build the Gold dimensions. Parents load before children.
-Step 7 (this file): build the Gold facts and the aggregate, then reconcile. The reconcile task FAILS the run if Gold does not tie back.
+Step 7 (this file): build the Gold facts (sales, inventory, price) and the aggregate, then reconcile. The reconcile task FAILS the run if Gold does not tie back.
 
 The "day" is the run's logical date: set it when you trigger or backfill (2026-09-16 and so on).
 Backfill runs the days one after another (max_active_runs=1), which the SCD2 and positional loads rely on.
@@ -31,7 +31,7 @@ SILVER_FROM_STORES = ["region", "district", "locn"]
 
 # Gold dimensions and facts (one SQL file and one task per table)
 GOLD_DIMS = ["dept", "subclass", "brand", "item", "region", "district", "locn"]
-GOLD_FACTS = ["sales", "inventory"]
+GOLD_FACTS = ["sales", "inventory", "price"]
 
 
 def run_sql(task_id, sql_file):
@@ -74,6 +74,7 @@ def retail_etl():
     silver_stores = [run_sql(f"silver_{n}", f"silver/load_tmp_{n}.sql") for n in SILVER_FROM_STORES]
     silver_sales = run_sql("silver_sales", "silver/load_tmp_sales.sql")          # needs TMP_ITEM
     silver_inventory = run_sql("silver_inventory", "silver/load_tmp_inventory.sql")
+    silver_price = run_sql("silver_price", "silver/load_tmp_price.sql")          # built from the clean sales lines
     silver = dict(zip(SILVER_FROM_ITEMS + SILVER_FROM_STORES, silver_items + silver_stores))
 
     # GOLD
@@ -103,6 +104,7 @@ def retail_etl():
     bronze["pos_sales"] >> silver_sales
     silver["item"] >> silver_sales
     bronze["inventory_snapshot"] >> silver_inventory
+    silver_sales >> silver_price
 
     # Gold dimensions: parents before children. The roots (dept, brand, region) run in parallel.
     silver["dept"] >> gold["dept"]
@@ -116,12 +118,13 @@ def retail_etl():
     # Gold facts: need the item and store versions, and their own Silver table.
     [gold["item"], gold["locn"], silver_sales] >> fct["sales"]
     [gold["item"], gold["locn"], silver_inventory] >> fct["inventory"]
+    [gold["item"], gold["locn"], silver_price] >> fct["price"]
 
     # The aggregate is rebuilt from the sales fact (the whole month, never incremental).
     fct["sales"] >> agg
 
     # Reconcile last: fails the DAG if Gold does not tie back.
-    [fct["inventory"], agg] >> reconcile("{{ ds }}")
+    [fct["inventory"], fct["price"], agg] >> reconcile("{{ ds }}")
 
 
 retail_etl()
