@@ -25,7 +25,7 @@ import loader_utils as lu  # noqa: E402
 def dag():
     from airflow.models import DagBag
 
-    bag = DagBag(dag_folder=str(ROOT / "dags"), include_examples=False)
+    bag = DagBag(dag_folder=str(ROOT / "dags"))
     assert bag.import_errors == {}, bag.import_errors
     return bag.get_dag("load_files_to_snowflake")
 
@@ -59,9 +59,8 @@ def test_archive_only_after_every_load_succeeds(dag):
 
 
 def test_trigger_rules(dag):
-    assert str(dag.get_task("alert_on_failure").trigger_rule) .endswith("one_failed")
-    assert str(dag.get_task("report").trigger_rule).endswith("all_done")
-
+    assert dag.get_task("alert_on_failure").trigger_rule.value == "one_failed"
+    assert dag.get_task("report").trigger_rule.value == "all_done"
 
 def test_no_credentials_and_no_clock_calls_in_dag_files():
     for f in (ROOT / "dags").glob("*.py"):
