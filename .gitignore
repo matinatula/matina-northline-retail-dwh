@@ -1,5 +1,9 @@
 data/snowflake_conn.jsondata/
-data/
 logs/
 __pycache__/
 *.pyc
+
+data/*
+!data/incoming/
+data/incoming/*
+!data/incoming/*.csv

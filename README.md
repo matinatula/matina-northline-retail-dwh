@@ -916,12 +916,10 @@ Screenshots are stored in `output_screenshots/`.
 | `2.3_20_rejects_report.png` | Rejected-row report |
 | `2.3_21_scd2_store_1112.png` | SCD2 history for a store district change |
 | `2.3_22_positional_facts.png` | Positional fact effective-date behaviour |
-| `2.3_24_counts_after_rerun.png` | Counts after rerun |
-| `2.3_25_faulty_rejects.png` | Rejection behaviour on deliberately faulty input |
-| `2.3_26_faulty_reconcile.png` | Reconciliation on faulty input |
-| `2.3_27_tests_passed.png` | Automated tests passed |
-
-The screenshot sequence intentionally has no `2.3_23` file in the current repository.
+| `2.3_23_counts_after_rerun.png` | Counts after rerun |
+| `2.3_24_faulty_rejects.png` | Rejection behaviour on deliberately faulty input |
+| `2.3_25_faulty_reconcile.png` | Reconciliation on faulty input |
+| `2.3_26_tests_passed.png` | Automated tests passed |
 
 ---
 
